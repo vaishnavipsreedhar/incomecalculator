@@ -1,64 +1,24 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import pandas as pd
 import joblib
 
-app = FastAPI(title="Income Classifier API")
+app = FastAPI()
 
-# Allow all origins for CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Load trained pipeline
-pipeline = joblib.load("income_pipeline.pkl")
-
-
-# Input schema
-class InputData(BaseModel):
-    age: int
-    workclass: str
-    fnlwgt: int
-    education: str
-    education_num: int
-    marital_status: str
-    occupation: str
-    relationship: str
-    race: str
-    sex: str
-    capital_gain: int
-    capital_loss: int
-    hours_per_week: int
-    native_country: str
-
+pipeline = None
+try:
+    pipeline = joblib.load("income_pipeline.pkl")
+except Exception as e:
+    print("⚠️ Warning: Could not load pipeline:", e)
 
 @app.get("/")
 def root():
-    return {
-        "message": "Hello, your API is live!",
-        "docs": "/docs",
-        "health": "/health"
-    }
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
+    return {"message": "Income Calculator API is running 🚀"}
 
 @app.post("/predict")
-def predict(data: InputData):
-    df = pd.DataFrame([data.dict()])
-    pred = pipeline.predict(df)[0]
-    label = ">50K" if int(pred) == 1 else "<=50K"
-    proba = None
+def predict(features: dict):
+    if pipeline is None:
+        return {"error": "Model not available on server. Please check deployment."}
     try:
-        proba = float(pipeline.predict_proba(df)[0][1])
-    except Exception:
-        pass
-    return {"prediction": label, "prob_gt_50k": proba}
+        prediction = pipeline.predict([list(features.values())])[0]
+        return {"prediction": int(prediction)}
+    except Exception as e:
+        return {"error": f"Prediction failed: {str(e)}"}
