@@ -6,7 +6,7 @@ import joblib
 
 app = FastAPI(title="Income Classifier API")
 
-# Allow all origins for CORS (React frontend will need this)
+# Allow all origins for CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +18,8 @@ app.add_middleware(
 # Load trained pipeline
 pipeline = joblib.load("income_pipeline.pkl")
 
-# Input data schema (match the dataset columns exactly)
+
+# Input schema
 class InputData(BaseModel):
     age: int
     workclass: str
@@ -35,9 +36,20 @@ class InputData(BaseModel):
     hours_per_week: int
     native_country: str
 
+
+@app.get("/")
+def root():
+    return {
+        "message": "Hello, your API is live!",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
 
 @app.post("/predict")
 def predict(data: InputData):
